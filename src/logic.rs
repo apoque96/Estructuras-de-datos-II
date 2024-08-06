@@ -89,13 +89,6 @@ impl Logic {
                             self.ds_isb.remove(isbn);
                         }
                     }
-
-                    // if let Some(ptr) = self.ds_isb.remove(key["isbn"].as_str().unwrap()) {
-                    //     let a = ptr.as_ref().borrow();
-                    //     if let Some(name) = &a.name {
-                    //         self.ds_name.remove(name);
-                    //     }
-                    // }
                 }
                 _ => {
                     continue;
