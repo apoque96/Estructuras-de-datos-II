@@ -31,11 +31,22 @@ cargo --version
 Para ejecutar el programa siga los siguiente pasos:
 
 1. Clone el proyecto
-   `git clone https://github.com/apoque96/E2-lab1.git`
+
+```
+   git clone https://github.com/apoque96/E2-lab1.git
+```
+
 2. Navege al proyecto
-   `cd lab1`
+
+```
+   cd lab1
+```
+
 3. Ejecutelo con Cargo
-   `Cargo Run`
+
+```
+   Cargo Run
+```
 
 Con el programa ejecutado, este le pedira la ruta relativa del archivo con los datos y metodos a realizar, posteriormente le pedira la ruta relativo del archivo con las busquedas a realizar.<br>
 
