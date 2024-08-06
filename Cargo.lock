@@ -3,6 +3,15 @@
 version = 3
 
 [[package]]
+name = "btreemultimap"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6786e40464bbcf1d72084fb26dd5f96c10c41c23a6d2f118d8c82870d4aa5447"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -36,6 +45,7 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 name = "lab1"
 version = "0.1.0"
 dependencies = [
+ "btreemultimap",
  "encoding_rs",
  "encoding_rs_io",
  "serde",
