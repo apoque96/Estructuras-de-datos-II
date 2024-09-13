@@ -41,7 +41,13 @@ impl Logic {
                         for ptr in vec {
                             let mut article = ptr.borrow_mut();
                             if !key["name"].is_null() {
-                                article.name = Some(String::from(key["name"].as_str().unwrap()));
+                                let name = String::from(key["name"].as_str().unwrap());
+                                if let Some(original_name) = article.name.clone() {
+                                    if let Some(v) = self.ds_name.remove(&original_name) {
+                                        self.ds_name.insert_many(name.clone(), v);
+                                    }
+                                }
+                                article.name = Some(name);
                             }
                             if !key["author"].is_null() {
                                 article.author =
