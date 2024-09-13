@@ -25,11 +25,9 @@ impl Logic {
                     let ptr = Rc::new(RefCell::new(article.clone()));
                     if let Some(isbn) = article.isbn {
                         self.ds_isb.insert(isbn, Rc::clone(&ptr));
-                        // self.ds_isb.entry(isbn).or_insert(Rc::clone(&ptr));
                     }
                     if let Some(name) = article.name {
                         self.ds_name.insert(name, Rc::clone(&ptr));
-                        // self.ds_name.entry(name).or_insert(Rc::clone(&ptr));
                     }
                 }
                 "PATCH" => {
@@ -124,7 +122,6 @@ impl Logic {
         let mut file = File::create(path)?;
         print!("\x1B[2J\x1B[1;1H");
         for article in ans {
-            println!("{}", article);
             writeln!(file, "{}", article)?;
         }
 
