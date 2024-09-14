@@ -4,6 +4,7 @@ use file_manager::read_file;
 use logic::Logic;
 
 pub mod file_manager;
+pub mod huffman;
 pub mod logic;
 pub mod structs;
 
