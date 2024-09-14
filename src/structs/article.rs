@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+use crate::huffman::huffman_tree::HuffmanTree;
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Article {
     pub isbn: Option<String>,
@@ -20,6 +22,10 @@ impl Article {
         }
         if let Some(ref name) = self.name {
             parts.push(format!("\"name\":\"{}\"", name));
+
+            //I'm way to lazy to refactor the code just so it doesn't panic when no name
+            let tree = HuffmanTree::build(name.to_string()).expect("Error, no name found");
+            tree.encode(name.to_string());
         }
         if let Some(ref author) = self.author {
             parts.push(format!("\"author\":\"{}\"", author));
@@ -32,6 +38,18 @@ impl Article {
         }
         if let Some(ref quantity) = self.quantity {
             parts.push(format!("\"quantity\":\"{}\"", quantity));
+        }
+
+        if let Some(ref name) = self.name {
+            //I'm way to lazy to refactor the code just so it doesn't panic when no name
+            let tree = HuffmanTree::build(name.to_string()).expect("Error, no name found");
+            // tree.print_tree();
+            // tree.print_symbols();
+            parts.push(format!("\"namesize\":\"{}\"", name.len() * 2));
+            parts.push(format!(
+                "\"namesizehuffman\":\"{}\"",
+                tree.encode(name.to_string()).len()
+            ));
         }
 
         parts.join(",")
