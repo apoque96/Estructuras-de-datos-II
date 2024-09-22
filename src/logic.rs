@@ -79,18 +79,10 @@ impl Logic {
                         if let Some(ptr) = vec.pop() {
                             let a = ptr.as_ref().borrow();
                             if let Some(name) = &a.name {
-                                if let Some(ptr) = self.ds_name.get_vec_mut(name) {
-                                    ptr.pop();
-
-                                    if ptr.is_empty() {
-                                        self.ds_name.remove(name);
-                                    }
+                                if self.ds_name.contains_key(name) {
+                                    self.ds_name.remove(name);
                                 }
                             }
-                        }
-
-                        if vec.is_empty() {
-                            self.ds_isb.remove(isbn);
                         }
                     }
                 }
@@ -113,17 +105,42 @@ impl Logic {
                 return Err("Invalid method: must be SEARCH".into());
             }
             if let Some(ptr) = self.ds_name.get_vec(key["name"].as_str().unwrap()) {
-                let article = ptr[0].as_ref().borrow();
+                let article = ptr[0].as_ref().borrow_mut();
                 ans.push(article);
             }
         }
 
+        let mut equal = 0;
+        let mut decompress = 0;
+        let mut huffman = 0;
+        let mut arithmetic = 0;
+
         let path = "output.txt";
         let mut file = File::create(path)?;
-        print!("\x1B[2J\x1B[1;1H");
-        for article in ans {
+        for mut article in ans {
+            article.compress();
+
+            let namesize = article.namesize.unwrap();
+            let namesizehuffman = article.namesizehuffman.unwrap();
+            let namesizearithmetic = article.namesizearithmetic.unwrap();
+
+            if namesize == namesizehuffman && namesize == namesizearithmetic {
+                equal += 1;
+            } else if namesize <= namesizehuffman && namesize <= namesizearithmetic {
+                decompress += 1;
+            } else if namesizehuffman <= namesize && namesizehuffman <= namesizearithmetic {
+                huffman += 1;
+            } else if namesizearithmetic <= namesize && namesizearithmetic <= namesizehuffman {
+                arithmetic += 1;
+            }
+
             writeln!(file, "{}", article)?;
         }
+
+        writeln!(file, "Equal: {}\r", equal)?;
+        writeln!(file, "Decompress: {}\r", decompress)?;
+        writeln!(file, "Huffman: {}\r", huffman)?;
+        writeln!(file, "Arithmetic: {}\r", arithmetic)?;
 
         Ok(())
     }

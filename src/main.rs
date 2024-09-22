@@ -3,6 +3,7 @@ use std::{borrow::Borrow, io::stdin};
 use file_manager::read_file;
 use logic::Logic;
 
+pub mod arithmetic;
 pub mod file_manager;
 pub mod huffman;
 pub mod logic;
