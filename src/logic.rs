@@ -114,6 +114,7 @@ impl Logic {
         let mut decompress = 0;
         let mut huffman = 0;
         let mut arithmetic = 0;
+        let mut either = 0;
 
         let path = "output.txt";
         let mut file = File::create(path)?;
@@ -126,12 +127,14 @@ impl Logic {
 
             if namesize == namesizehuffman && namesize == namesizearithmetic {
                 equal += 1;
-            } else if namesize <= namesizehuffman && namesize <= namesizearithmetic {
+            } else if namesize < namesizehuffman && namesize < namesizearithmetic {
                 decompress += 1;
-            } else if namesizehuffman <= namesize && namesizehuffman <= namesizearithmetic {
+            } else if namesizehuffman < namesize && namesizehuffman < namesizearithmetic {
                 huffman += 1;
-            } else if namesizearithmetic <= namesize && namesizearithmetic <= namesizehuffman {
+            } else if namesizearithmetic < namesize && namesizearithmetic < namesizehuffman {
                 arithmetic += 1;
+            }else{
+                either += 1;
             }
 
             writeln!(file, "{}", article)?;
@@ -141,6 +144,7 @@ impl Logic {
         writeln!(file, "Decompress: {}\r", decompress)?;
         writeln!(file, "Huffman: {}\r", huffman)?;
         writeln!(file, "Arithmetic: {}\r", arithmetic)?;
+        writeln!(file, "Either: {}\r", either)?;
 
         Ok(())
     }
