@@ -41,7 +41,7 @@ fn main() {
         }
         Err(e) => println!("Error: {e}"),
     }
-    println!("Press Enter to exit");
+    println!("Generated file output.txt. Press Enter to exit");
     let mut a = String::from("a");
     _ = stdin().read_line(&mut a);
 }

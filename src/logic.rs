@@ -133,10 +133,11 @@ impl Logic {
                 huffman += 1;
             } else if namesizearithmetic < namesize && namesizearithmetic < namesizehuffman {
                 arithmetic += 1;
-            }else{
+            } else {
                 either += 1;
             }
 
+            println!("{}", article);
             writeln!(file, "{}", article)?;
         }
 
