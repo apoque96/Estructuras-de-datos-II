@@ -1,9 +1,16 @@
+use bit_vec::BitVec;
 use btreemultimap::BTreeMultiMap;
-use std::{cell::RefCell, error::Error, fs::File, io::Write, rc::Rc};
+use std::{
+    cell::RefCell,
+    error::Error,
+    fs::{self, File},
+    io::Write,
+    rc::Rc,
+};
 
 use serde_json::Value;
 
-use crate::structs::{article::Article, data::Data};
+use crate::structs::{article::Article, data::Data, des::DES};
 pub struct Logic {
     ds_isb: BTreeMultiMap<String, Rc<RefCell<Article>>>,
     ds_name: BTreeMultiMap<String, Rc<RefCell<Article>>>,
@@ -146,6 +153,15 @@ impl Logic {
         writeln!(file, "Huffman: {}\r", huffman)?;
         writeln!(file, "Arithmetic: {}\r", arithmetic)?;
         writeln!(file, "Either: {}\r", either)?;
+
+        let encrypter = DES::new();
+        let key = BitVec::from_bytes("ok:uo1IN".as_bytes());
+        let mut encrypted_file = File::create("enctypted")?;
+        encrypted_file.write(
+            &encrypter
+                .encrypt(BitVec::from_bytes(&fs::read(path)?), key, true)?
+                .to_bytes(),
+        )?;
 
         Ok(())
     }
