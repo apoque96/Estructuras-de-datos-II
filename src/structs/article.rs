@@ -63,15 +63,16 @@ impl Article {
             parts.push(format!("\"quantity\":\"{}\"", quantity));
         }
 
-        parts.push(format!("\"namesize\":\"{}\"", self.namesize.unwrap() / 8));
-        parts.push(format!(
-            "\"namesizehuffman\":\"{}\"",
-            self.namesizehuffman.unwrap()
-        ));
-        parts.push(format!(
-            "\"namesizearithmetic\":\"{}\"",
-            self.namesizearithmetic.unwrap() / 8
-        ));
+        // data compression
+        // parts.push(format!("\"namesize\":\"{}\"", self.namesize.unwrap() / 8));
+        // parts.push(format!(
+        //     "\"namesizehuffman\":\"{}\"",
+        //     self.namesizehuffman.unwrap()
+        // ));
+        // parts.push(format!(
+        //     "\"namesizearithmetic\":\"{}\"",
+        //     self.namesizearithmetic.unwrap() / 8
+        // ));
 
         parts.join(",")
     }

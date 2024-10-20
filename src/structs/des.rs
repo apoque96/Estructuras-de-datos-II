@@ -1,6 +1,4 @@
-use std::error::Error;
-
-use bit_vec::BitVec;
+use std::{error::Error, vec};
 pub struct DES {
     parity_drop_table: [usize; 56],
     shift_table: [usize; 16],
@@ -101,63 +99,74 @@ impl DES {
 
     pub fn encrypt(
         &self,
-        data: BitVec,
-        key: BitVec,
+        data: Vec<u8>,
+        key: &[u8],
         add_padding: bool,
-    ) -> Result<BitVec, Box<dyn Error>> {
+    ) -> Result<Vec<u8>, Box<dyn Error>> {
         let mut data = data.clone();
-        if key.len() != 64 {
+        if key.len() != 8 {
             return Err(Box::from("Key length must be 8 bytes"));
         }
         if add_padding {
-            data = Self::add_pkcs_7_padding(data, 64)?;
+            data = Self::add_pkcs_7_padding(&data, 8)?;
         }
 
-        Ok(self.desprocess(data, key, true))
+        Ok(self.desprocess(&data, key, true))
     }
 
-    fn desprocess(&self, input_data: BitVec, encription_key: BitVec, ascending: bool) -> BitVec {
+    fn desprocess(&self, input_data: &[u8], encription_key: &[u8], ascending: bool) -> Vec<u8> {
         //don't know if this works
-        let mut proccessed_data = BitVec::from_elem(input_data.len(), false);
-        let block_count = input_data.len() / 64;
+        let mut proccessed_data = vec![0; input_data.len()];
+        let block_count = input_data.len() / 8;
         let round_keys = self.generate_keys(encription_key, ascending);
-        let mut block_buffer = BitVec::from_elem(64, false);
-        let mut left_half = BitVec::from_elem(32, false);
-        let mut right_half = BitVec::from_elem(32, false);
+        // let mut block_buffer = [0; 8];
+        let mut block_buffer = vec![0; 8];
+        let mut left_half = vec![0; 4];
+        let mut right_half = vec![0; 4];
         let mut expanded_right_half;
-        let mut substituted_right_half = BitVec::from_elem(32, false);
+        let mut substituted_right_half = vec![0; 4];
         let mut temp_right_half;
 
         for block_num in 0..block_count {
-            for i in 0..64 {
-                *block_buffer.get_mut(i).unwrap() = input_data.get(block_num * 64 + i).unwrap();
+            // for i in 0..64 {
+            //     // *block_buffer.get_mut(i).unwrap() = input_data.get(block_num * 64 + i).unwrap();
+            //     Self::set_bit_at(
+            //         &mut block_buffer,
+            //         i,
+            //         Self::get_bit_at(input_data, block_num * 64 + i),
+            //     );
+            // }
+            for i in 0..8 {
+                block_buffer[i] = input_data[block_num * 8 + i];
             }
-            // println!("{:?}", block_buffer.to_bytes());
-            block_buffer = Self::permute(block_buffer, self.initial_permutation_table.to_vec());
+            block_buffer = Self::permute(&block_buffer, self.initial_permutation_table.to_vec());
 
             for round in 0..16 {
-                for i in 0..32 {
-                    *left_half.get_mut(i).unwrap() = block_buffer.get(i).unwrap();
-                    *right_half.get_mut(i).unwrap() = block_buffer.get(i + 32).unwrap();
+                // for i in 0..32 {
+                //     // *left_half.get_mut(i).unwrap() = block_buffer.get(i).unwrap();
+                //     // *right_half.get_mut(i).unwrap() = block_buffer.get(i + 32).unwrap();
+                // }
+                for i in 0..4 {
+                    left_half[i] = block_buffer[i];
+                    right_half[i] = block_buffer[i + 4];
                 }
 
                 expanded_right_half = Self::permute(
-                    right_half.clone(),
+                    &right_half.clone(),
                     self.expansion_permutation_table.to_vec(),
                 );
 
-                expanded_right_half.xor(&round_keys[round]);
+                expanded_right_half = Self::xor(&expanded_right_half, &round_keys[round]);
 
                 for section in 0..8 {
-                    let row = ((expanded_right_half.get(section * 6).unwrap() as usize) << 1)
-                        | (expanded_right_half.get(section * 6 + 5).unwrap() as usize);
+                    let row = ((Self::get_bit_at(&expanded_right_half, section * 6) as usize) << 1)
+                        | (Self::get_bit_at(&expanded_right_half, section * 6 + 5) as usize);
                     let mut column = 0;
 
                     for bit_index in 0..4 {
-                        column |= (expanded_right_half
-                            .get(section * 6 + bit_index + 1)
-                            .unwrap() as usize)
-                            << (3 - bit_index);
+                        column |=
+                            (Self::get_bit_at(&expanded_right_half, section * 6 + bit_index + 1)
+                                << (3 - bit_index)) as usize;
                     }
 
                     let s_box_value = self.s_box_table[section][row][column];
@@ -166,55 +175,58 @@ impl DES {
                         Self::set_bit_at(
                             &mut substituted_right_half,
                             section * 4 + bit_index,
-                            (s_box_value >> (3 - bit_index)) & 1 != 0,
+                            ((s_box_value >> (3 - bit_index)) & 1) as u8,
                         );
                     }
                 }
 
                 substituted_right_half = Self::permute(
-                    substituted_right_half,
+                    &substituted_right_half,
                     self.p_box_permutation_table.to_vec(),
                 );
 
-                //The function is inplace, but because left_half isn't used anymore in the round, it doesn't matter
-                left_half.xor(&substituted_right_half);
-                temp_right_half = left_half.clone();
+                // left_half.xor(&substituted_right_half);
+                // temp_right_half = left_half.clone();
+                temp_right_half = Self::xor(&left_half, &substituted_right_half);
 
                 if round != 15 {
-                    for i in 0..32 {
-                        *block_buffer.get_mut(i).unwrap() = right_half.get(i).unwrap();
-                        *block_buffer.get_mut(i + 32).unwrap() = temp_right_half.get(i).unwrap();
+                    for i in 0..4 {
+                        block_buffer[i] = right_half[i];
+                        block_buffer[i + 4] = temp_right_half[i];
                     }
                 } else {
-                    for i in 0..32 {
-                        *block_buffer.get_mut(i).unwrap() = temp_right_half.get(i).unwrap();
-                        *block_buffer.get_mut(i + 32).unwrap() = right_half.get(i).unwrap();
+                    for i in 0..4 {
+                        block_buffer[i] = temp_right_half[i];
+                        block_buffer[i + 4] = right_half[i];
                     }
                 }
             }
-            block_buffer = Self::permute(block_buffer, self.final_permutation_table.to_vec());
-            for i in 0..64 {
-                *proccessed_data.get_mut(block_num * 64 + i).unwrap() =
-                    block_buffer.get(i).unwrap();
+            block_buffer = Self::permute(&block_buffer, self.final_permutation_table.to_vec());
+            // for i in 0..64 {
+            //     *proccessed_data.get_mut(block_num * 64 + i).unwrap() =
+            //         block_buffer.get(i).unwrap();
+            // }
+            for i in 0..8 {
+                proccessed_data[block_num * 8 + i] = block_buffer[i];
             }
         }
 
         proccessed_data
     }
 
-    fn generate_keys(&self, initial_key: BitVec, ascending: bool) -> [BitVec; 16] {
-        let mut round_keys: [BitVec; 16] = core::array::from_fn(|_| BitVec::new());
+    fn generate_keys(&self, initial_key: &[u8], ascending: bool) -> [Vec<u8>; 16] {
+        // let mut round_keys: [BitVec; 16] = core::array::from_fn(|_| BitVec::new());
+        let mut round_keys: [Vec<u8>; 16] = [const { Vec::new() }; 16];
         let mut permuted_key = Self::permute(initial_key, self.parity_drop_table.to_vec());
         for round in 0..16 {
-            let left_half = Self::select_bits(permuted_key.clone(), 0, 28);
-            let right_half = Self::select_bits(permuted_key.clone(), 28, 28);
+            let left_half = Self::select_bits(&permuted_key, 0, 28);
+            let right_half = Self::select_bits(&permuted_key, 28, 28);
 
-            let left_half = Self::left_shift(left_half, 28, self.shift_table[round]);
-            let right_half = Self::left_shift(right_half, 28, self.shift_table[round]);
+            let left_half = Self::left_shift(&left_half, 28, self.shift_table[round]);
+            let right_half = Self::left_shift(&right_half, 28, self.shift_table[round]);
 
-            let combined_key = Self::join_key(left_half, right_half);
-            round_keys[round] =
-                Self::permute(combined_key.clone(), self.key_compression_table.to_vec());
+            let combined_key = Self::join_key(&left_half, &right_half);
+            round_keys[round] = Self::permute(&combined_key, self.key_compression_table.to_vec());
             permuted_key = combined_key;
         }
 
@@ -225,57 +237,55 @@ impl DES {
         round_keys
     }
 
-    fn permute(source: BitVec, table: Vec<usize>) -> BitVec {
+    fn permute(source: &[u8], table: Vec<usize>) -> Vec<u8> {
         let length = table.len();
-        //don't know if this works
-        let mut result = BitVec::from_elem(length, false);
+        let mut result = vec![0; length];
         for i in 0..table.len() {
-            //don't know if this works
-            Self::set_bit_at(&mut result, i, source.get(table[i] - 1).unwrap());
+            Self::set_bit_at(&mut result, i, Self::get_bit_at(source, table[i] - 1));
         }
         result
     }
 
-    //don't know if this works
-    fn set_bit_at(data: &mut BitVec, position: usize, value: bool) {
-        *data.get_mut(position).unwrap() = value;
-    }
-
-    fn select_bits(source: BitVec, start: usize, count: usize) -> BitVec {
-        //don't know if this works
-        let mut result = BitVec::from_elem(count, false);
+    fn select_bits(source: &[u8], start: usize, count: usize) -> Vec<u8> {
+        let mut result = vec![0; count];
         for i in 0..count {
-            Self::set_bit_at(&mut result, i, source.get(start + i).unwrap());
+            // Self::set_bit_at(&mut result, i, source.get(start + i).unwrap());
+            Self::set_bit_at(&mut result, i, Self::get_bit_at(source, start + i));
         }
 
         result
     }
 
-    fn left_shift(data: BitVec, len: usize, shift: usize) -> BitVec {
-        let mut outer = BitVec::from_elem(len, false);
+    fn left_shift(data: &[u8], len: usize, shift: usize) -> Vec<u8> {
+        let mut outer: Vec<u8> = vec![0; (len - 1) / 8 + 1];
         for i in 0..len {
-            let val = data.get((i + shift) % len).unwrap();
+            // let val = data.get((i + shift) % len).unwrap();
+            // Self::set_bit_at(&mut outer, i, val);
+            let val = Self::get_bit_at(data, (i + shift) % len);
             Self::set_bit_at(&mut outer, i, val);
         }
         outer
     }
 
-    fn join_key(left_half: BitVec, right_half: BitVec) -> BitVec {
-        let mut result = BitVec::from_elem(56, false);
-        for i in 0..24 {
-            *result.get_mut(i).unwrap() = left_half.get(i).unwrap();
+    fn join_key(left_half: &[u8], right_half: &[u8]) -> Vec<u8> {
+        // let mut result = BitVec::from_elem(56, false);
+        let mut result: Vec<u8> = vec![0; 7];
+        for i in 0..3 {
+            result[i] = left_half[i];
         }
-        for j in 24..28 {
-            *result.get_mut(j).unwrap() = left_half.get(j).unwrap();
+        for j in 0..4 {
+            let val = Self::get_bit_at(left_half, 24 + j);
+            Self::set_bit_at(&mut result, 24 + j, val);
         }
         for w in 0..28 {
-            *result.get_mut(28 + w).unwrap() = right_half.get(w).unwrap();
+            let val = Self::get_bit_at(right_half, w);
+            Self::set_bit_at(&mut result, 28 + w, val);
         }
 
         result
     }
 
-    fn add_pkcs_7_padding(data: BitVec, block_size: usize) -> Result<BitVec, Box<dyn Error>> {
+    fn add_pkcs_7_padding(data: &[u8], block_size: usize) -> Result<Vec<u8>, Box<dyn Error>> {
         if data.len() <= 0 {
             return Err(Box::from("Data cannot be null"));
         }
@@ -292,25 +302,44 @@ impl DES {
             padding_size = block_size;
         }
 
-        let mut padded_data = BitVec::from_elem(data.len() + padding_size, false);
+        let mut padded_data = vec![0; data.len() + padding_size];
         for i in 0..data.len() {
-            *padded_data.get_mut(i).unwrap() = data.get(i).unwrap();
+            padded_data[i] = data[i];
         }
 
-        let mut temp = BitVec::from_bytes(&(padding_size / 8).to_be_bytes());
-        let mut padding_byte = BitVec::from_elem(8, false);
-        for i in 0..8 {
-            *padding_byte.get_mut(7 - i).unwrap() = temp.pop().unwrap();
-        }
+        let padding_byte = padding_size as u8;
 
-        let mut i = data.len();
-        while i < padded_data.len() {
-            for j in 0..8 {
-                *padded_data.get_mut(i + j).unwrap() = padding_byte.get(j).unwrap();
-            }
-            i += 8;
+        for i in data.len()..padded_data.len() {
+            padded_data[i] = padding_byte;
         }
 
         Ok(padded_data)
+    }
+
+    //don't know if this works
+    fn set_bit_at(data: &mut [u8], position: usize, value: u8) {
+        let pos_byte = position / 8;
+        let pos_bit = position % 8;
+
+        if value == 1 {
+            data[pos_byte] |= 1 << (7 - pos_bit);
+        } else {
+            data[pos_byte] &= !(1 << (7 - pos_bit));
+        }
+    }
+
+    fn get_bit_at(data: &[u8], position: usize) -> u8 {
+        let pos_byte = position / 8;
+        let pos_bit = position % 8;
+        data[pos_byte] >> (7 - pos_bit) & 1
+    }
+
+    fn xor(first: &[u8], second: &[u8]) -> Vec<u8> {
+        let mut result = vec![0; first.len()];
+        for i in 0..first.len() {
+            result[i] = first[i] ^ second[i];
+        }
+
+        result
     }
 }
