@@ -1,9 +1,15 @@
 use btreemultimap::BTreeMultiMap;
-use std::{cell::RefCell, error::Error, fs::File, io::Write, rc::Rc};
+use std::{
+    cell::RefCell,
+    error::Error,
+    fs::{self, File},
+    io::Write,
+    rc::Rc,
+};
 
 use serde_json::Value;
 
-use crate::structs::{article::Article, data::Data};
+use crate::structs::{article::Article, data::Data, des::DES};
 pub struct Logic {
     ds_isb: BTreeMultiMap<String, Rc<RefCell<Article>>>,
     ds_name: BTreeMultiMap<String, Rc<RefCell<Article>>>,
@@ -110,42 +116,50 @@ impl Logic {
             }
         }
 
-        let mut equal = 0;
-        let mut decompress = 0;
-        let mut huffman = 0;
-        let mut arithmetic = 0;
-        let mut either = 0;
+        // data compression
+        // let mut equal = 0;
+        // let mut decompress = 0;
+        // let mut huffman = 0;
+        // let mut arithmetic = 0;
+        // let mut either = 0;
 
         let path = "output.txt";
         let mut file = File::create(path)?;
-        for mut article in ans {
-            article.compress();
+        for article in ans {
+            // data compression
+            // article.compress();
 
-            let namesize = article.namesize.unwrap();
-            let namesizehuffman = article.namesizehuffman.unwrap();
-            let namesizearithmetic = article.namesizearithmetic.unwrap();
+            // let namesize = article.namesize.unwrap();
+            // let namesizehuffman = article.namesizehuffman.unwrap();
+            // let namesizearithmetic = article.namesizearithmetic.unwrap();
 
-            if namesize == namesizehuffman && namesize == namesizearithmetic {
-                equal += 1;
-            } else if namesize < namesizehuffman && namesize < namesizearithmetic {
-                decompress += 1;
-            } else if namesizehuffman < namesize && namesizehuffman < namesizearithmetic {
-                huffman += 1;
-            } else if namesizearithmetic < namesize && namesizearithmetic < namesizehuffman {
-                arithmetic += 1;
-            } else {
-                either += 1;
-            }
+            // if namesize == namesizehuffman && namesize == namesizearithmetic {
+            //     equal += 1;
+            // } else if namesize < namesizehuffman && namesize < namesizearithmetic {
+            //     decompress += 1;
+            // } else if namesizehuffman < namesize && namesizehuffman < namesizearithmetic {
+            //     huffman += 1;
+            // } else if namesizearithmetic < namesize && namesizearithmetic < namesizehuffman {
+            //     arithmetic += 1;
+            // } else {
+            //     either += 1;
+            // }
 
             println!("{}", article);
             writeln!(file, "{}", article)?;
         }
 
-        writeln!(file, "Equal: {}\r", equal)?;
-        writeln!(file, "Decompress: {}\r", decompress)?;
-        writeln!(file, "Huffman: {}\r", huffman)?;
-        writeln!(file, "Arithmetic: {}\r", arithmetic)?;
-        writeln!(file, "Either: {}\r", either)?;
+        // data compression
+        // writeln!(file, "Equal: {}\r", equal)?;
+        // writeln!(file, "Decompress: {}\r", decompress)?;
+        // writeln!(file, "Huffman: {}\r", huffman)?;
+        // writeln!(file, "Arithmetic: {}\r", arithmetic)?;
+        // writeln!(file, "Either: {}\r", either)?;
+
+        let encrypter = DES::new();
+        let key = b"ok:uo1IN";
+        let mut encrypted_file = File::create("encrypted")?;
+        encrypted_file.write(&encrypter.encrypt(fs::read(path)?, key, true)?)?;
 
         Ok(())
     }
